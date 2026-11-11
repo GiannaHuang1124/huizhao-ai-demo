@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>慧照 AI 模擬</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 左側走流程與訊息計數，中間長者手機，右側子女手機；內部展示用，不使用 LINE 商標 */
+:root {
+  --bg: #e8eef1; --panel: #ffffff; --ink: #1e2a30; --muted: #526a75; --line: #d7dde2;
+  --chat: #8cabd8; --bubble: #ffffff; --me: #8de055; --green: #06c755; --green-ink: #ffffff;
+  --blue: #0f5f78; --lcd: #b9c7a8; --lcd-ink: #1d2a1b; --shell: #111111; --warm: #fbeed9; --warm-ink: #8a5208;
+  --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; --mono: "IBM Plex Mono", Consolas, monospace;
+}
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.5; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)) }
+button { font: inherit; color: inherit; cursor: pointer }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px }
+.wrap { max-width: 1200px; margin: 0 auto; display: grid; gap: 18px }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 900 }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 66ch }
+.stage { display: grid; grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start }
+.side { display: grid; gap: 12px; min-width: 0 }
+.side h2, .phonecol h2 { margin: 0; font-size: 15px; color: var(--muted) }
+.side ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px }
+.step { width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; grid-template-columns: 24px 1fr; gap: 8px }
+.step:hover { border-color: var(--blue) }
+.step small { display: block; color: var(--muted); font-size: 13px }
+.mark { width: 22px; height: 22px; border: 2px solid var(--line); border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--mono); color: var(--muted) }
+.step.done .mark { background: var(--green); border-color: var(--green); color: #fff }
+.meter { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 14px }
+.meter b { display: block; margin-bottom: 4px }
+.meter div { display: flex; justify-content: space-between; gap: 8px }
+.meter span:last-child { font: 600 14px var(--mono) }
+.reset { justify-self: start; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px }
+.switch { display: none; gap: 6px }
+.switch button { flex: 1; padding: 10px; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; font-weight: 700 }
+.switch button[aria-pressed="true"] { background: var(--blue); color: #fff; border-color: var(--blue) }
+.phonecol { display: grid; gap: 8px; justify-items: center; min-width: 0 }
+.phone { position: relative; width: min(100%, 372px); height: 720px; overflow: hidden; display: flex; flex-direction: column; background: var(--chat); border: 9px solid var(--shell); border-radius: 34px }
+.bar { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: var(--chat); color: #111; font-weight: 700 }
+.chat { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px }
+.line { max-width: 94%; display: grid; gap: 2px; align-self: flex-start }
+.line.me { align-self: flex-end; justify-items: end }
+.who { font-size: 12px; color: #17303b; margin-left: 42px }
+.me .who { display: none }
+.msg { position: relative; margin-left: 42px; background: var(--bubble); border-radius: 16px; padding: 10px 12px; overflow-wrap: anywhere }
+.me .msg { margin-left: 0; background: var(--me); color: #111 }
+.avatar { position: absolute; left: -42px; top: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px }
+.me .avatar { display: none }
+.elder .msg { font-size: 20px }
+.child .msg { font-size: 15px }
+.vals { font: 600 23px var(--mono); margin: 4px 0; font-variant-numeric: tabular-nums }
+.photo { width: 158px; height: 104px; display: grid; place-items: center; border-radius: 10px; background: var(--lcd); color: var(--lcd-ink); font: 600 24px var(--mono) }
+.photo.meal { font-size: 34px; background: #f7e6c8 }
+.photo.bag { font: 700 16px var(--font); background: #eef3f5; color: #17303b; padding: 8px; text-align: center }
+.photo.blur { filter: blur(4px) }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px }
+.chip { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 6px 10px; font-size: 15px }
+.elder .chip { font-size: 18px; padding: 8px 12px }
+.chip.primary { background: var(--green); color: var(--green-ink); border-color: var(--green) }
+.chip.play { width: 48px; height: 48px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #eaf8ef; border-color: var(--green); color: #049b45 }
+.elder .chip.play { width: 56px; height: 56px; font-size: 24px }
+.composer { background: var(--panel); padding: 8px 10px; display: grid; grid-template-columns: auto auto auto minmax(0, 1fr) auto; gap: 8px; align-items: center; border-top: 1px solid var(--line) }
+.tool { width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; color: #4a5a62; font-size: 20px; display: grid; place-items: center; padding: 0 }
+.tool.camerabtn { width: 44px; height: 44px; background: #eaf8ef; color: #049b45 }
+.fakeinput { min-width: 0; padding: 7px 10px; border-radius: 16px; background: #eef2f4; color: var(--muted); font-size: 14px }
+.note { font-size: 13px; color: var(--muted) }
+.camera, .liff { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; background: var(--panel) }
+.camera { background: #17262d; color: #fff; padding: 18px; gap: 18px; justify-content: center }
+.camera .photo { width: 100%; height: 220px }
+.camera .big { min-height: 64px; border: 0; border-radius: 12px; background: #fff; color: #17303b; font-size: 22px; font-weight: 800 }
+.camera .cancel { background: transparent; color: #fff; border: 1px solid #8ca0a8 }
+.liffbar { display: flex; justify-content: space-between; align-items: center; padding: 11px 12px; border-bottom: 1px solid var(--line); font-weight: 700 }
+.close { background: transparent; border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line) }
+.tabs button { background: transparent; border: 0; padding: 10px 4px; font-weight: 700; color: var(--muted) }
+.tabs button[aria-selected="true"] { color: var(--blue); box-shadow: inset 0 -3px var(--blue) }
+.liffbody { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: grid; gap: 12px; align-content: start }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 7px }
+.card h3 { margin: 0; font-size: 16px }
+.card p { margin: 0 }
+.pending { background: var(--warm); color: var(--warm-ink); border-radius: 6px; padding: 2px 7px; justify-self: start; font-size: 13px }
+.field { display: flex; gap: 6px; flex-wrap: wrap; align-items: center }
+.field input { width: 76px; padding: 7px; font: inherit; border: 1px solid var(--line); border-radius: 7px }
+.topic { width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px }
+.topic[aria-pressed="true"] { border-color: var(--green); background: #effbf3 }
+textarea { width: 100%; min-height: 72px; padding: 8px; font: inherit; border: 1px solid var(--line); border-radius: 8px }
+.send { min-height: 48px; border: 0; border-radius: 10px; background: var(--green); color: #fff; font-weight: 800 }
+.send:disabled { background: #adb9bf }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums }
+th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top }
+th { color: var(--muted); font-weight: 500 }
+footer { color: var(--muted); font-size: 13px }
+@media (max-width: 900px) {
+  .stage { grid-template-columns: 1fr }
+  .switch { display: flex }
+  body[data-view="elder"] .childcol, body[data-view="child"] .eldercol { display: none }
+}
+</style>
+</head>
+<body data-view="elder">
+<div class="wrap">
+  <header>
+    <h1>慧照 AI 模擬</h1>
+    <p>長者只在家人 LINE 小群組拍照，系統回覆紀錄與語音；子女從 LIFF 確認資料，並把關心傳回群組。畫面中的人物、數字與照片都是模擬。</p>
+  </header>
+  <div class="switch" role="group" aria-label="切換手機">
+    <button id="tabElder" aria-pressed="true">長者手機</button>
+    <button id="tabChild" aria-pressed="false">子女手機</button>
+  </div>
+  <main class="stage">
+    <aside class="side">
+      <h2>照順序走一次</h2>
+      <ol id="steps"></ol>
+      <div class="meter">
+        <b>訊息方式示意</b>
+        <div><span>Reply 回群組</span><span id="replyCount">0</span></div>
+        <div><span>子女 LIFF 傳訊</span><span id="liffCount">0</span></div>
+        <div><span>Push 推播</span><span>0</span></div>
+        <small class="note">Reply 不計入訊息則數；LIFF 傳訊的計數待後台確認。</small>
+      </div>
+      <button class="reset" id="reset">重新開始</button>
+    </aside>
+    <section class="phonecol eldercol">
+      <h2>林阿公，71 歲（範例）</h2>
+      <div class="phone elder" id="elderPhone">
+        <div class="bar"><span>‹</span><span>爸爸健康小群組（3）</span><span>⋮</span></div>
+        <div class="chat" id="elderChat" aria-live="polite"></div>
+        <div class="composer"><span class="tool">＋</span><button class="tool camerabtn" id="shoot" aria-label="開啟相機">📷</button><span class="tool">▣</span><span class="fakeinput">輸入訊息</span><span class="tool">🎙</span></div>
+      </div>
+    </section>
+    <section class="phonecol childcol">
+      <h2>林小姐，在外地工作（範例）</h2>
+      <div class="phone child" id="childPhone">
+        <div class="bar"><span>‹</span><span>爸爸健康小群組（3）</span><span>⋮</span></div>
+        <div class="chat" id="childChat" aria-live="polite"></div>
+        <div class="composer"><span class="tool">＋</span><span class="tool">📷</span><span class="tool">▣</span><span class="fakeinput">輸入訊息</span><span class="tool">🎙</span></div>
+      </div>
+    </section>
+  </main>
+  <footer>內部展示用概念畫面，沒有真的辨識照片或傳送資料。群組訊息和按鈕大家都看得到；點開「查看與回應」後，LIFF 才依長者或子女顯示不同內容。</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const SCENES = {
+  bp: { label: '血壓', cls: '', screen: '128 / 78\n脈搏 72', title: '早上血壓', value: '128/78，脈搏 72', say: '爸爸早上量了血壓：128/78，脈搏 72。已先記下，等家人確認。', topic: '爸今天有量血壓，真不錯。', record: { sys: 128, dia: 78, pulse: 72 } },
+  glu: { label: '血糖', cls: '', screen: '105\nmg/dL', title: '飯前血糖', value: '105 mg/dL', say: '爸爸飯前量了血糖：105 mg/dL。已先記下，等家人確認。', topic: '今天也有記血糖，辛苦了。', record: { val: 105 } },
+  meal: { label: '餐點', cls: 'meal', screen: '🐟 🍚 🥬', title: '午餐', value: '魚、白飯、少量青菜', say: '今天午餐有魚和白飯，青菜看起來少一點。', topic: '今天吃魚看起來不錯，魚是去哪裡買的？晚上要不要多加一點青菜？', record: {} }
+  // 修改原因: 服務不拍藥袋（使用者 2026-11-09 指示）。解決方案: 刪除藥袋情境與步驟。
+  // 影響範圍: 左側步驟清單少一步，其餘流程不變。資料流向: 長輩拍照只會產生血壓、血糖、餐點三種紀錄。
+};
+const STEPS = [
+  ['bp', '拍血壓', '長者只按拍照'], ['glu', '拍血糖', '系統讀數字並回覆'], ['meal', '拍餐點', '整理簡單營養參考'],
+  ['confirm', '子女確認', '在 LIFF 確認或修正'],
+  ['care', '傳關心', '從 LIFF 傳回群組'], ['visit', '回診摘要', '只放已確認紀錄']
+];
+let state;
+
+function fresh() {
+  state = { records: [], selected: 'bp', done: new Set(), reply: 0, liff: 0, topic: '', tab: 'confirm', blur: false };
+  $('elderChat').replaceChildren(); $('childChat').replaceChildren();
+  document.querySelectorAll('.camera,.liff').forEach(o => o.remove());
+  groupMessage('系統', '大家好，爸爸拍照後，這裡會出現量測或餐點紀錄。', { reply: false, link: true });
+  renderSteps(); renderMeter(); setView('elder');
+}
+function setView(view) {
+  document.body.dataset.view = view;
+  $('tabElder').setAttribute('aria-pressed', view === 'elder');
+  $('tabChild').setAttribute('aria-pressed', view === 'child');
+}
+function renderMeter() { $('replyCount').textContent = state.reply; $('liffCount').textContent = state.liff; }
+function mark(key) { state.done.add(key); renderSteps(); }
+function renderSteps() {
+  $('steps').replaceChildren(...STEPS.map(([key, title, sub], i) => {
+    const li = document.createElement('li'), b = document.createElement('button');
+    b.className = 'step' + (state.done.has(key) ? ' done' : '');
+    b.innerHTML = `<span class="mark">${state.done.has(key) ? '✓' : i + 1}</span><span><b>${title}</b><small>${sub}</small></span>`;
+    b.onclick = () => runStep(key); li.append(b); return li;
+  }));
+}
+function runStep(key) {
+  if (SCENES[key]) { setView('elder'); state.selected = key; openCamera(key); }
+  if (key === 'confirm') openLiff('confirm');
+  if (key === 'care') openLiff('care');
+  if (key === 'visit') openLiff('visit');
+}
+
+function bubble(box, sender, text, opt = {}) {
+  const line = document.createElement('div'); line.className = 'line' + (opt.me ? ' me' : '');
+  const who = document.createElement('div'); who.className = 'who'; who.textContent = sender;
+  const msg = document.createElement('div'); msg.className = 'msg';
+  const avatar = document.createElement('span'); avatar.className = 'avatar'; avatar.textContent = sender.slice(0, 1);
+  msg.append(avatar);
+  if (opt.photo) {
+    const p = document.createElement('div'); p.className = `photo ${opt.photo.cls}`; p.textContent = opt.photo.screen; msg.append(p);
+  }
+  if (text) { const t = document.createElement('div'); t.textContent = text; msg.append(t); }
+  if (opt.actions) msg.append(opt.actions);
+  line.append(who, msg); box.append(line); box.scrollTop = box.scrollHeight;
+}
+function speakButton(text) {
+  const b = document.createElement('button'); b.className = 'chip play'; b.textContent = '▶'; b.setAttribute('aria-label', '播放語音'); b.title = '播放語音';
+  b.onclick = () => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'zh-TW'; u.rate = .9; speechSynthesis.speak(u); } catch (e) { b.textContent = '此裝置無法播放'; } };
+  return b;
+}
+function groupMessage(sender, text, opt = {}) {
+  const elderActions = document.createElement('div'); elderActions.className = 'actions';
+  const childActions = document.createElement('div'); childActions.className = 'actions';
+  if (opt.voice) { elderActions.append(speakButton(text)); childActions.append(speakButton(text)); }
+  if (opt.link) {
+    const childLink = document.createElement('button'); childLink.className = 'chip primary'; childLink.textContent = '查看與回應'; childLink.onclick = () => openLiff('confirm'); childActions.append(childLink);
+    const elderLink = document.createElement('button'); elderLink.className = 'chip primary'; elderLink.textContent = '查看與回應'; elderLink.onclick = openElderLiff; elderActions.append(elderLink);
+  }
+  const hasElder = elderActions.childElementCount ? elderActions : null;
+  const hasChild = childActions.childElementCount ? childActions : null;
+  bubble($('elderChat'), sender, text, { me: opt.fromElder, photo: opt.photo, actions: hasElder });
+  bubble($('childChat'), sender, text, { me: opt.fromChild, photo: opt.photo, actions: hasChild });
+  if (opt.reply !== false && sender === '系統') { state.reply++; renderMeter(); }
+}
+
+function openCamera(type) {
+  document.querySelectorAll('#elderPhone .camera').forEach(o => o.remove());
+  const scene = SCENES[type], o = document.createElement('div'); o.className = 'camera';
+  const preview = document.createElement('div'); preview.className = `photo ${scene.cls}${state.blur ? ' blur' : ''}`; preview.textContent = scene.screen;
+  const take = document.createElement('button'); take.className = 'big'; take.textContent = '拍下來';
+  const cancel = document.createElement('button'); cancel.className = 'big cancel'; cancel.textContent = '取消';
+  take.onclick = () => { o.remove(); photoSent(type); };
+  cancel.onclick = () => o.remove();
+  o.append(preview, take, cancel); $('elderPhone').append(o);
+}
+function photoSent(type) {
+  const scene = SCENES[type];
+  groupMessage('林阿公', '', { fromElder: true, photo: scene });
+  state.records.push({ id: Date.now() + Math.random(), type, title: scene.title, value: scene.value, confirmed: false, record: { ...scene.record } });
+  groupMessage('系統', scene.say, { voice: true, link: true });
+  mark(type);
+}
+
+function openElderLiff() {
+  setView('elder');
+  document.querySelectorAll('#elderPhone .liff').forEach(o => o.remove());
+  const o = document.createElement('div'); o.className = 'liff';
+  o.innerHTML = '<div class="liffbar"><span>我的紀錄</span><button class="close">關閉</button></div><div class="liffbody"></div>';
+  o.querySelector('.close').onclick = () => o.remove();
+  const body = o.querySelector('.liffbody'), card = document.createElement('div'); card.className = 'card';
+  const h = document.createElement('h3'); h.textContent = '今天的紀錄'; card.append(h);
+  if (!state.records.length) { const p = document.createElement('p'); p.textContent = '還沒有紀錄，拍照就好。'; card.append(p); }
+  state.records.forEach(r => { const p = document.createElement('p'); p.textContent = `${r.title}：${r.value}`; card.append(p); });
+  const note = document.createElement('p'); note.className = 'note'; note.textContent = '不用確認，家人會幫忙看。'; card.append(note);
+  body.append(card); $('elderPhone').append(o);
+}
+function liffShell() {
+  document.querySelectorAll('#childPhone .liff').forEach(o => o.remove());
+  const o = document.createElement('div'); o.className = 'liff';
+  o.innerHTML = '<div class="liffbar"><span>家人頁面</span><button class="close">關閉</button></div><div class="tabs" role="tablist"><button data-tab="confirm">確認紀錄</button><button data-tab="care">傳關心</button><button data-tab="visit">回診摘要</button></div><div class="liffbody"></div>';
+  o.querySelector('.close').onclick = () => o.remove();
+  o.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLiff(b.dataset.tab));
+  $('childPhone').append(o); return o;
+}
+function openLiff(tab = state.tab) {
+  setView('child'); state.tab = tab;
+  const o = liffShell(), body = o.querySelector('.liffbody');
+  o.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  if (tab === 'confirm') renderConfirm(body);
+  if (tab === 'care') renderCare(body);
+  if (tab === 'visit') renderVisit(body);
+}
+function renderConfirm(body) {
+  const pending = state.records.filter(r => !r.confirmed);
+  if (!pending.length) { body.innerHTML = '<div class="card"><h3>目前沒有待確認紀錄</h3><p>爸爸拍照後，這裡會出現新紀錄。</p></div>'; return; }
+  pending.forEach(r => {
+    const card = document.createElement('div'); card.className = 'card';
+    const h = document.createElement('h3'); h.textContent = r.title;
+    const tag = document.createElement('span'); tag.className = 'pending'; tag.textContent = '待確認';
+    const p = document.createElement('p'); p.textContent = r.value;
+    const field = document.createElement('div'); field.className = 'field';
+    let inputs = [];
+    if (r.type === 'bp') inputs = [['sys', '收縮壓'], ['dia', '舒張壓'], ['pulse', '脈搏']];
+    if (r.type === 'glu') inputs = [['val', '血糖']];
+    inputs.forEach(([key, label]) => {
+      const input = document.createElement('input'); input.type = 'number'; input.value = r.record[key]; input.setAttribute('aria-label', label); input.dataset.key = key; field.append(input);
+    });
+    const ok = document.createElement('button'); ok.className = 'chip primary'; ok.textContent = '確認';
+    ok.onclick = () => {
+      const values = [...field.querySelectorAll('input')];
+      if (values.some(x => !x.value || Number(x.value) <= 0)) { p.textContent = '請輸入正確數字。'; return; }
+      values.forEach(x => { r.record[x.dataset.key] = Number(x.value); });
+      if (r.type === 'bp') r.value = `${r.record.sys}/${r.record.dia}，脈搏 ${r.record.pulse}`;
+      if (r.type === 'glu') r.value = `${r.record.val} mg/dL`;
+      r.confirmed = true; mark('confirm'); openLiff('confirm');
+    };
+    card.append(h, tag, p); if (inputs.length) card.append(field); card.append(ok); body.append(card);
+  });
+}
+function renderCare(body) {
+  const sourceList = [...new Set(state.records.map(r => r.type))].map(t => SCENES[t].topic);
+  const topics = sourceList.length ? sourceList : ['爸，今天過得好嗎？'];
+  const card = document.createElement('div'); card.className = 'card';
+  const h = document.createElement('h3'); h.textContent = '選一句，或自己改';
+  const text = document.createElement('textarea'); text.id = 'careText'; text.value = state.topic || topics[0];
+  card.append(h);
+  topics.forEach(t => {
+    const b = document.createElement('button'); b.className = 'topic'; b.textContent = t; b.setAttribute('aria-pressed', text.value === t);
+    b.onclick = () => { text.value = t; state.topic = t; card.querySelectorAll('.topic').forEach(x => x.setAttribute('aria-pressed', x.textContent === t)); };
+    card.append(b);
+  });
+  const send = document.createElement('button'); send.className = 'send'; send.textContent = '傳回群組';
+  send.onclick = () => {
+    const message = text.value.trim();
+    if (!message) { text.focus(); return; }
+    groupMessage('林小姐', message, { fromChild: true, voice: false });
+    state.liff++; renderMeter(); mark('care'); document.querySelector('#childPhone .liff')?.remove();
+  };
+  const note = document.createElement('p'); note.className = 'note'; note.textContent = '按下後，訊息會以林小姐本人的身分出現在群組。';
+  card.append(text, send, note); body.append(card);
+}
+function renderVisit(body) {
+  const rows = state.records.filter(r => r.confirmed && ['bp', 'glu'].includes(r.type));
+  const card = document.createElement('div'); card.className = 'card';
+  const h = document.createElement('h3'); h.textContent = '林阿公 近期量測紀錄';
+  card.append(h);
+  if (!rows.length) { const p = document.createElement('p'); p.textContent = '尚無已確認的血壓或血糖紀錄。'; card.append(p); }
+  else {
+    const table = document.createElement('table'); table.innerHTML = '<thead><tr><th>項目</th><th>紀錄</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    rows.forEach(r => { const tr = document.createElement('tr'); const a = document.createElement('td'), b = document.createElement('td'); a.textContent = r.title; b.textContent = r.value; tr.append(a, b); tbody.append(tr); });
+    table.append(tbody); card.append(table);
+  }
+  const label = document.createElement('label'); label.htmlFor = 'visitAsk'; label.textContent = '想問醫師的事';
+  const ask = document.createElement('textarea'); ask.id = 'visitAsk'; ask.value = '最近早上起床有時候頭暈，想問要注意什麼。';
+  const note = document.createElement('p'); note.className = 'note'; note.textContent = '紀錄由家人確認，未經醫療專業判讀，僅供就醫時參考。';
+  card.append(label, ask, note); body.append(card); mark('visit');
+}
+
+$('shoot').onclick = () => openCamera(state.selected);
+$('tabElder').onclick = () => setView('elder');
+$('tabChild').onclick = () => setView('child');
+$('reset').onclick = fresh;
+fresh();
+</script>
+</body>
+</html>
