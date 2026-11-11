@@ -115,13 +115,8 @@ footer { color: var(--muted); font-size: 13px }
     <aside class="side">
       <h2>照順序走一次</h2>
       <ol id="steps"></ol>
-      <div class="meter">
-        <b>訊息方式示意</b>
-        <div><span>Reply 回群組</span><span id="replyCount">0</span></div>
-        <div><span>子女 LIFF 傳訊</span><span id="liffCount">0</span></div>
-        <div><span>Push 推播</span><span>0</span></div>
-        <small class="note">Reply 不計入訊息則數；LIFF 傳訊的計數待後台確認。</small>
-      </div>
+      <!-- 修改原因: 使用者 2026-11-11 指示移除「訊息方式示意」計數區塊。解決方案: 刪除區塊，renderMeter 改為找不到元素時略過。
+           影響範圍: 只少了左側計數框；流程與群組訊息不變。資料流向: state.reply / state.liff 仍累計，但不再顯示。 -->
       <button class="reset" id="reset">重新開始</button>
     </aside>
     <section class="phonecol eldercol">
@@ -172,7 +167,11 @@ function setView(view) {
   $('tabElder').setAttribute('aria-pressed', view === 'elder');
   $('tabChild').setAttribute('aria-pressed', view === 'child');
 }
-function renderMeter() { $('replyCount').textContent = state.reply; $('liffCount').textContent = state.liff; }
+function renderMeter() {
+  const reply = $('replyCount'), liff = $('liffCount');
+  if (reply) reply.textContent = state.reply;
+  if (liff) liff.textContent = state.liff;
+}
 function mark(key) { state.done.add(key); renderSteps(); }
 function renderSteps() {
   $('steps').replaceChildren(...STEPS.map(([key, title, sub], i) => {
