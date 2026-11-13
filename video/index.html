@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>慧照 AI 提案影片</title>
+<!-- 修改原因: Google 雲端影片在未登入時常顯示「無法載入影片」。
+     解決方案: 改用 GitHub Pages 直接提供 mp4，以瀏覽器內建播放器播放，不需登入、不依賴 Cookie。
+     影響範圍: 只有這個播放頁與同資料夾的影片、封面圖。資料流向: 瀏覽器 -> 本頁 -> 同資料夾 mp4（邊下邊播）。 -->
+<style>
+:root { --bg: #f4f4f7; --ink: #1f1f1f; --muted: #5a5a5a; --accent: #615fc7; --card: #ffffff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #16161c; --ink: #f1f1f4; --muted: #b4b4bf; --accent: #a5a3ff; --card: #22222b; } }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif; line-height: 1.6 }
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px }
+h1 { margin: 0 0 4px; font-size: clamp(22px, 3.2vw, 32px) }
+p { margin: 0 0 16px; color: var(--muted) }
+.player { background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.18) }
+video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000 }
+.meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; color: var(--muted) }
+a { color: var(--accent) }
+</style>
+</head>
+<body>
+<main>
+  <h1>慧照 AI 提案影片</h1>
+  <p>宸揚資科股份有限公司｜AgeTech 數位友善大賞 健康安全組</p>
+  <div class="player">
+    <video controls playsinline preload="metadata" poster="poster.jpg">
+      <source src="huizhao-ai-proposal.mp4" type="video/mp4">
+      您的瀏覽器無法播放此影片，請<a href="huizhao-ai-proposal.mp4">直接下載影片</a>觀看。
+    </video>
+  </div>
+  <div class="meta">
+    <span>片長 2 分 58 秒・1920×1080</span>
+    <a href="huizhao-ai-proposal.mp4" download>下載影片檔（約 40MB）</a>
+    <a href="../">開啟互動模擬畫面</a>
+  </div>
+</main>
+</body>
+</html>
